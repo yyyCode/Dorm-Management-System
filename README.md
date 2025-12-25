@@ -21,15 +21,19 @@
 
 ### 1. 数据库配置 (Database Configuration)
 
-项目已配置连接到远程数据库，无需本地搭建数据库（除非你想改回本地）。
+项目默认配置需要连接到 MySQL 数据库。请在配置文件中修改为你自己的数据库连接信息。
 
 - **配置文件**: `src/main/resources/application.yml`
-- **IP**: `10.21.32.13`
-- **端口**: `3306`
-- **数据库名**: `DormManagement`
-- **用户名/密码**: `root` / `12345678`
+- **数据库版本**: MySQL 5.7 或 8.0
+- **修改项**: 请根据实际环境修改 `url`, `username`, `password`。
 
-> **注意**: 请确保你的网络环境可以访问该 IP 地址。
+```yaml
+spring:
+  datasource:
+    url: jdbc:mysql://YOUR_DB_IP:3306/DormManagement?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai
+    username: YOUR_USERNAME
+    password: YOUR_PASSWORD
+```
 
 ### 2. 启动后端 (Start Backend)
 
