@@ -11,6 +11,7 @@
       <el-table-column prop="birthDate" label="出生日期" width="120" />
       <el-table-column prop="grade" label="年级" width="120" />
       <el-table-column prop="dormId" label="宿舍号" width="100" />
+      <el-table-column prop="bedNumber" label="床位号" width="100" />
       <el-table-column prop="phone" label="联系方式" />
       <el-table-column label="操作" width="150">
         <template #default="scope">
@@ -75,6 +76,7 @@ const form = reactive({
   birthDate: '',
   grade: '',
   dormId: '',
+  bedNumber: undefined,
   phone: ''
 })
 

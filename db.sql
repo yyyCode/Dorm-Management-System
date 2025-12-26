@@ -10,6 +10,7 @@ CREATE TABLE Student (
     BirthDate DATE,                       -- 出生日期
     Grade VARCHAR(50),                    -- 年级
     DormID VARCHAR(20),                   -- 宿舍ID，外键
+    BedNumber INT,                        -- 床位号
     Phone VARCHAR(15)                     -- 联系方式
 );
 
@@ -25,6 +26,7 @@ CREATE TABLE Bed (
     DormID VARCHAR(20),                   -- 宿舍ID，外键
     BedNumber INT NOT NULL,               -- 床位号
     IsAssigned BOOLEAN DEFAULT FALSE,     -- 是否已分配
+    StudentID VARCHAR(20),                -- 入住学生ID
     PRIMARY KEY (DormID, BedNumber),      -- 复合主键：宿舍ID + 床位号
     FOREIGN KEY (DormID) REFERENCES Dorm(DormID)
 );

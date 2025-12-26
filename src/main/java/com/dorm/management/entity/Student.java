@@ -41,6 +41,12 @@ public class Student implements Serializable {
     private String dormId;
 
     /**
+     * 床位号
+     */
+    @com.baomidou.mybatisplus.annotation.TableField("BedNumber")
+    private Integer bedNumber;
+
+    /**
      * 联系方式
      */
     @com.baomidou.mybatisplus.annotation.TableField("Phone")

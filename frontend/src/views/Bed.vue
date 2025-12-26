@@ -7,6 +7,11 @@
     <el-table :data="tableData" style="width: 100%" v-loading="loading">
       <el-table-column prop="dormId" label="宿舍ID" width="150" />
       <el-table-column prop="bedNumber" label="床位号" width="150" />
+      <el-table-column prop="studentId" label="入住学生" width="150">
+        <template #default="scope">
+           {{ scope.row.studentId || '暂无' }}
+        </template>
+      </el-table-column>
       <el-table-column prop="isAssigned" label="状态">
         <template #default="scope">
           <el-tag :type="scope.row.isAssigned ? 'danger' : 'success'">

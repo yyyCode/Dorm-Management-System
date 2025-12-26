@@ -32,4 +32,10 @@ public class Bed implements Serializable {
      */
     @com.baomidou.mybatisplus.annotation.TableField("IsAssigned")
     private Boolean isAssigned;
+
+    /**
+     * 入住学生ID
+     */
+    @com.baomidou.mybatisplus.annotation.TableField("StudentID")
+    private String studentId;
 }

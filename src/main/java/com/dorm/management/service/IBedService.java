@@ -8,4 +8,14 @@ public interface IBedService extends IService<Bed> {
     Bed getByDormAndBedNum(String dormId, Integer bedNumber);
     boolean removeByDormAndBedNum(String dormId, Integer bedNumber);
     boolean updateStatus(String dormId, Integer bedNumber, Boolean isAssigned);
+    
+    /**
+     * 分配床位
+     */
+    boolean assignBed(String dormId, Integer bedNumber, String studentId);
+
+    /**
+     * 释放床位
+     */
+    boolean releaseBed(String dormId, Integer bedNumber);
 }

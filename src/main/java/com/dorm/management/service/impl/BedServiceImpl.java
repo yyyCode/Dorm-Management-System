@@ -7,8 +7,10 @@ import com.dorm.management.entity.Bed;
 import com.dorm.management.mapper.BedMapper;
 import com.dorm.management.service.IBedService;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@Transactional
 public class BedServiceImpl extends ServiceImpl<BedMapper, Bed> implements IBedService {
 
     @Override
@@ -31,5 +33,23 @@ public class BedServiceImpl extends ServiceImpl<BedMapper, Bed> implements IBedS
                 .eq(Bed::getDormId, dormId)
                 .eq(Bed::getBedNumber, bedNumber)
                 .set(Bed::getIsAssigned, isAssigned));
+    }
+
+    @Override
+    public boolean assignBed(String dormId, Integer bedNumber, String studentId) {
+        return this.update(new LambdaUpdateWrapper<Bed>()
+                .eq(Bed::getDormId, dormId)
+                .eq(Bed::getBedNumber, bedNumber)
+                .set(Bed::getIsAssigned, true)
+                .set(Bed::getStudentId, studentId));
+    }
+
+    @Override
+    public boolean releaseBed(String dormId, Integer bedNumber) {
+        return this.update(new LambdaUpdateWrapper<Bed>()
+                .eq(Bed::getDormId, dormId)
+                .eq(Bed::getBedNumber, bedNumber)
+                .set(Bed::getIsAssigned, false)
+                .set(Bed::getStudentId, null));
     }
 }
