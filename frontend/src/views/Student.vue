@@ -3,7 +3,7 @@
     <div class="toolbar">
       <el-button type="primary" @click="handleAdd">添加学生</el-button>
     </div>
-    
+
     <el-table :data="tableData" style="width: 100%" v-loading="loading">
       <el-table-column prop="studentId" label="学号" width="120" />
       <el-table-column prop="name" label="姓名" width="120" />
@@ -44,6 +44,9 @@
         <el-form-item label="宿舍号">
           <el-input v-model="form.dormId"></el-input>
         </el-form-item>
+        <el-form-item label="床位号">
+          <el-input v-model="form.bedNumber"></el-input>
+        </el-form-item>
         <el-form-item label="电话">
           <el-input v-model="form.phone"></el-input>
         </el-form-item>
@@ -76,7 +79,7 @@ const form = reactive({
   birthDate: '',
   grade: '',
   dormId: '',
-  bedNumber: undefined,
+  bedNumber: '',
   phone: ''
 })
 
