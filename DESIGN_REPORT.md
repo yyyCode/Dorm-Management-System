@@ -202,6 +202,397 @@ erDiagram
         *   若经常按“年级”统计，建议在 `Student(Grade)` 上建立索引。
 
 ### 4.3 物理文件组织
-
 *   数据文件与索引文件通常存储在 `.ibd` 文件中（在使用 `innodb_file_per_table` 配置下），每个表对应一个物理文件，便于管理和空间回收。
 
+---
+
+## 5. 可行性研究
+
+### 5.1 技术上的可行性
+- 技术栈成熟：后端采用 Spring Boot 3 + MyBatis-Plus，前端采用 Vue 3 + Element Plus + Vite，均为主流开源技术。
+- 数据库稳定：使用 MySQL InnoDB 引擎，支持事务与外键，满足数据一致性要求。
+- 部署简易：可在 Windows 本机或任意支持 Java 17 与 MySQL 的环境运行，前端可通过 Vite 构建静态资源。
+- 现有代码基础完善：
+  - 控制层：[BedController.java](file:///e:/Java/Dorm-Management-System/src/main/java/com/dorm/management/controller/BedController.java)、[StudentController.java](file:///e:/Java/Dorm-Management-System/src/main/java/com/dorm/management/controller/StudentController.java)、[DormController.java](file:///e:/Java/Dorm-Management-System/src/main/java/com/dorm/management/controller/DormController.java)、[FeeController.java](file:///e:/Java/Dorm-Management-System/src/main/java/com/dorm/management/controller/FeeController.java)
+  - 服务层：事务已开启，支持床位分配与释放逻辑，[StudentServiceImpl.java](file:///e:/Java/Dorm-Management-System/src/main/java/com/dorm/management/service/impl/StudentServiceImpl.java)、[BedServiceImpl.java](file:///e:/Java/Dorm-Management-System/src/main/java/com/dorm/management/service/impl/BedServiceImpl.java)
+  - 前端视图：[Student.vue](file:///e:/Java/Dorm-Management-System/frontend/src/views/Student.vue)、[Bed.vue](file:///e:/Java/Dorm-Management-System/frontend/src/views/Bed.vue)
+
+### 5.2 运行上的可行性
+- 用户角色以“宿管管理员”为主，界面简单直观，学习成本低。
+- 操作流程明确：学生新增/编辑即触发床位分配或释放；床位页面支持状态切换。
+- 支持常见运行环境：只需 MySQL 启动且配置正确，即可运行。
+- 支持数据初始化与重置：提供 [db.sql](file:///e:/Java/Dorm-Management-System/db.sql)、[mock_data.sql](file:///e:/Java/Dorm-Management-System/mock_data.sql)、[reset_data.sql](file:///e:/Java/Dorm-Management-System/reset_data.sql) 方便演示。
+
+### 5.3 经济上的可行性
+- 软件成本低：采用全部开源技术，无许可证费用。
+- 硬件成本低：开发与部署可用普通 PC，数据库数据量较小。
+- 维护成本可控：结构清晰、模块化，便于后续学生或教师继续迭代。
+
+---
+
+## 6. 需求分析
+
+### 6.1 需求概述
+- 管理学生基本信息、宿舍与床位资源、学生费用记录。
+- 建立学生与床位的一对一入住关系，支持调床与退宿。
+- 提供直观前端界面与相应后端接口。
+
+### 6.2 技术性需求
+- 后端：Java 17、Spring Boot 3、MyBatis-Plus，REST 风格接口。
+- 前端：Vue 3、Element Plus、Vite，使用 Axios 封装请求（见 [request.js](file:///e:/Java/Dorm-Management-System/frontend/src/api/request.js)）。
+- 数据库：MySQL、InnoDB、UTF8MB4。
+- 事务一致性：床位分配/释放与学生信息更新需在事务中完成。
+
+### 6.3 界面需求
+- 学生管理页：列表展示、增删改查、宿舍号与床位号编辑（见 [Student.vue](file:///e:/Java/Dorm-Management-System/frontend/src/views/Student.vue)）。
+- 床位管理页：展示床位状态与入住学生，支持状态切换与删除（见 [Bed.vue](file:///e:/Java/Dorm-Management-System/frontend/src/views/Bed.vue)）。
+- 宿舍管理与费用管理页：基础 CRUD 展示与维护（见对应视图文件）。
+
+### 6.4 功能模型
+#### 6.4.1 用例图（Mermaid 近似表达）
+```mermaid
+flowchart LR
+    Admin[宿管管理员] --> UC1[维护学生信息]
+    Admin --> UC2[维护宿舍/床位]
+    Admin --> UC3[维护费用记录]
+    UC1 --> UC1a[新增/编辑学生]
+    UC1a --> UC1b[自动分配/释放床位]
+    UC2 --> UC2a[新增床位/修改状态]
+    UC3 --> UC3a[录入费用/查询费用]
+```
+
+#### 6.4.2 用例描述（简要）
+- 维护学生信息：管理员新增或编辑学生，填写 DormID 与 BedNumber 后，系统在保存时分配床位；调换床位时释放旧床位并分配新床位；删除学生时释放其床位。
+- 维护宿舍/床位：管理员新增床位，切换床位占用状态，查看床位对应学生。
+- 维护费用记录：管理员为学生录入费用（住宿费、水电费等），按学生查询费用记录。
+
+### 6.5 实体类图
+```mermaid
+classDiagram
+    class Student {
+      +String studentId
+      +String name
+      +String gender
+      +LocalDate birthDate
+      +String grade
+      +String dormId
+      +Integer bedNumber
+      +String phone
+    }
+    class Dorm {
+      +String dormId
+      +String building
+      +Integer bedCount
+    }
+    class Bed {
+      +String dormId
+      +Integer bedNumber
+      +Boolean isAssigned
+      +String studentId
+    }
+    class Fee {
+      +String feeId
+      +String studentId
+      +String feeType
+      +BigDecimal amount
+      +LocalDate payDate
+    }
+    Student "1" -- "1" Bed
+    Dorm "1" -- "many" Bed
+    Student "1" -- "many" Fee
+```
+
+---
+
+## 7. 系统设计
+
+### 7.1 概述
+- 前端（Vue 3 + Element Plus）负责页面渲染与交互。
+- 后端（Spring Boot 3）提供 REST API，业务逻辑在 Service 层，持久化由 MyBatis-Plus 完成。
+- 数据库层（MySQL）存储实体与关系。
+
+### 7.2 系统层次结构图
+```mermaid
+flowchart TD
+    Browser --> Vue[Vue 3 / Element Plus]
+    Vue --> API[/Axios 请求: /student /bed /dorm /fee/]
+    API --> Controller[Spring MVC Controller]
+    Controller --> Service[Service 业务逻辑(事务)]
+    Service --> Mapper[MyBatis-Plus Mapper]
+    Mapper --> DB[(MySQL/InnoDB)]
+```
+
+### 7.3 类包与文件
+- 控制层（接收请求）：[controller](file:///e:/Java/Dorm-Management-System/src/main/java/com/dorm/management/controller/)
+  - 示例：维护学生的 [StudentController.java](file:///e:/Java/Dorm-Management-System/src/main/java/com/dorm/management/controller/StudentController.java)
+- 服务层（业务逻辑/事务）：[service/impl](file:///e:/Java/Dorm-Management-System/src/main/java/com/dorm/management/service/impl/)
+  - 学生服务（含分配/释放床位逻辑）：[StudentServiceImpl.java](file:///e:/Java/Dorm-Management-System/src/main/java/com/dorm/management/service/impl/StudentServiceImpl.java)
+  - 床位服务（状态更新/分配/释放）：[BedServiceImpl.java](file:///e:/Java/Dorm-Management-System/src/main/java/com/dorm/management/service/impl/BedServiceImpl.java)
+- 映射层（SQL 持久化）：[mapper](file:///e:/Java/Dorm-Management-System/src/main/java/com/dorm/management/mapper/)
+- 实体层（数据模型）：[entity](file:///e:/Java/Dorm-Management-System/src/main/java/com/dorm/management/entity/)
+- 配置层（Web/跨域等）：[WebConfig.java](file:///e:/Java/Dorm-Management-System/src/main/java/com/dorm/management/config/WebConfig.java)
+- 前端视图：学生页 [Student.vue](file:///e:/Java/Dorm-Management-System/frontend/src/views/Student.vue)，床位页 [Bed.vue](file:///e:/Java/Dorm-Management-System/frontend/src/views/Bed.vue)
+
+### 7.4 数据库设计
+- 设计依据与表结构详见：[db.sql](file:///e:/Java/Dorm-Management-System/db.sql)
+- 索引与外键：
+  - Bed 采用复合主键 (DormID, BedNumber)，确保床位在宿舍内唯一。
+  - Fee(StudentID)、Student(DormID) 建议建索引加速查询。
+- 字符集与引擎：UTF8MB4 + InnoDB，支持事务一致性与中文存储。
+
+### 7.5 详细设计（关键流程）
+#### 7.5.1 分配/释放床位的事务流程（序列图）
+```mermaid
+sequenceDiagram
+    participant Admin as 宿管管理员
+    participant UI as 前端UI(Student.vue)
+    participant API as 后端API(StudentController)
+    participant Svc as StudentService
+    participant BedSvc as BedService
+    participant DB as MySQL
+
+    Admin->>UI: 提交新增/编辑学生 (含DormID/BedNumber)
+    UI->>API: POST /student / PUT /student
+    API->>Svc: 调用保存/更新方法 (开启事务)
+    Svc->>DB: 保存/更新 Student
+    alt 指定了新的床位
+      Svc->>BedSvc: assignBed(dormId, bedNumber, studentId)
+      BedSvc->>DB: 更新 Bed isAssigned=true, studentId=学生ID
+    end
+    alt 更换床位
+      Svc->>BedSvc: releaseBed(旧dormId, 旧bedNumber)
+      BedSvc->>DB: 更新 Bed isAssigned=false, studentId=null
+      Svc->>BedSvc: assignBed(新dormId, 新bedNumber, 学生ID)
+      BedSvc->>DB: 更新 Bed isAssigned=true, studentId=学生ID
+    end
+    Svc-->>API: 返回成功
+    API-->>UI: 显示“操作成功”
+```
+
+#### 7.5.2 费用录入流程（简述）
+- 前端提交费用信息（StudentID、FeeType、Amount、PayDate）。
+- 后端校验 StudentID 存在性，插入 Fee 记录。
+- 支持按学生查询历史费用记录。
+
+#### 7.5.3 学生退宿释放床位（时序图）
+```mermaid
+sequenceDiagram
+    participant Admin as 宿管管理员
+    participant UI as 前端UI(Student.vue)
+    participant API as 后端API(StudentController)
+    participant Svc as StudentService
+    participant BedSvc as BedService
+    participant DB as MySQL
+
+    Admin->>UI: 点击删除学生
+    UI->>API: DELETE /students/{studentId}
+    API->>Svc: removeById(studentId) (事务)
+    Svc->>DB: 删除 Student 记录
+    Svc->>BedSvc: releaseBed(旧DormID, 旧BedNumber)
+    BedSvc->>DB: 更新 Bed isAssigned=false, studentId=null
+    Svc-->>API: 返回成功
+    API-->>UI: 显示“删除成功”
+```
+
+#### 7.5.4 床位状态切换（时序图）
+```mermaid
+sequenceDiagram
+    participant Admin as 宿管管理员
+    participant UI as 前端UI(Bed.vue)
+    participant API as 后端API(BedController)
+    participant BedSvc as BedService
+    participant DB as MySQL
+
+    Admin->>UI: 点击“设为空闲/设为占用”
+    UI->>API: PUT /beds/{dormId}/{bedNumber}?isAssigned=true|false
+    API->>BedSvc: updateStatus(dormId, bedNumber, isAssigned)
+    BedSvc->>DB: 更新 Bed.isAssigned
+    BedSvc-->>API: 返回成功
+    API-->>UI: 显示“状态更新成功”
+```
+
+#### 7.5.5 新增床位（时序图）
+```mermaid
+sequenceDiagram
+    participant Admin as 宿管管理员
+    participant UI as 前端UI(Bed.vue)
+    participant API as 后端API(BedController)
+    participant BedSvc as BedService
+    participant DB as MySQL
+
+    Admin->>UI: 填写 dormId 与 bedNumber 并提交
+    UI->>API: POST /beds
+    API->>BedSvc: save(bed)
+    BedSvc->>DB: 插入 Bed(dormId, bedNumber, isAssigned=false)
+    BedSvc-->>API: 返回创建结果
+    API-->>UI: 显示“添加成功”并刷新列表
+```
+
+#### 7.5.6 录入费用（时序图）
+```mermaid
+sequenceDiagram
+    participant Admin as 宿管管理员
+    participant UI as 前端UI(Fee.vue)
+    participant API as 后端API(FeeController)
+    participant FeeSvc as FeeService
+    participant DB as MySQL
+
+    Admin->>UI: 填写费用信息(学生ID, 类型, 金额, 日期)
+    UI->>API: POST /fees
+    API->>FeeSvc: save(fee)
+    FeeSvc->>DB: 插入 Fee 记录
+    FeeSvc-->>API: 返回成功
+    API-->>UI: 显示“录入成功”
+```
+
+#### 7.5.7 学生跨宿舍调床（时序图）
+```mermaid
+sequenceDiagram
+    participant Admin as 宿管管理员
+    participant UI as 前端UI(Student.vue)
+    participant API as 后端API(StudentController)
+    participant Svc as StudentService
+    participant BedSvc as BedService
+    participant DB as MySQL
+
+    Admin->>UI: 编辑学生(dormId, bedNumber 改为新宿舍/新床位)
+    UI->>API: PUT /students
+    API->>Svc: updateById(student) (事务)
+    Svc->>DB: 更新 Student 的 DormID/BedNumber
+    Svc->>BedSvc: releaseBed(旧DormID, 旧BedNumber)
+    BedSvc->>DB: 旧床位 isAssigned=false, studentId=null
+    Svc->>BedSvc: assignBed(新DormID, 新BedNumber, studentId)
+    BedSvc->>DB: 新床位 isAssigned=true, studentId=学生ID
+    Svc-->>API: 返回成功
+    API-->>UI: 显示“操作成功”并刷新页面
+```
+
+---
+
+## 8. 测试计划
+
+### 8.1 测试范围
+- 学生管理：新增、编辑、删除；与床位分配/释放的联动。
+- 床位管理：新增、状态切换、删除；显示入住学生。
+- 宿舍管理：新增、查询。
+- 费用管理：新增与查询。
+
+### 8.2 测试环境
+- 后端：Spring Boot 3，Java 17。
+- 数据库：MySQL 8.x，InnoDB，UTF8MB4。
+- 前端：Vite 开发环境，Vue 3 + Element Plus。
+- 数据准备：可执行 [reset_data.sql](file:///e:/Java/Dorm-Management-System/reset_data.sql) 清空数据，再执行 [db.sql](file:///e:/Java/Dorm-Management-System/db.sql) 与 [mock_data.sql](file:///e:/Java/Dorm-Management-System/mock_data.sql) 初始化。
+
+### 8.3 主要功能测试用例
+
+- 学生新增并分配床位
+  - 前置：确保目标床位在 Bed 中 isAssigned=false，且 StudentID 未被占用。
+  - 步骤：
+    - 前端在学生页面填写 studentId、name、gender、dormId、bedNumber 等信息并保存。
+    - 或通过接口：POST /students
+  - 期望：
+    - Student 表新增记录，DormID/BedNumber为提交值。
+    - Bed 表对应 (DormID, BedNumber) 的记录 isAssigned=true，studentId=该学生ID。
+    - 前端学生列表显示床位号，床位列表显示入住学生。
+  - 异常检查：
+    - 提交已被占用的床位：应拒绝或覆盖规则明确（当前实现为直接更新床位状态，建议后续增加校验）。
+
+- 学生编辑并更换床位
+  - 前置：学生已有旧床位；新床位未占用。
+  - 步骤：
+    - 前端在学生页面修改 dormId/bedNumber 后保存。
+    - 或通过接口：PUT /students
+  - 期望：
+    - 释放旧床位：旧 Bed isAssigned=false, studentId=null。
+    - 分配新床位：新 Bed isAssigned=true, studentId=该学生ID。
+    - 学生记录的 DormID/BedNumber 更新为新值。
+
+- 学生删除并释放床位
+  - 前置：学生占用某床位。
+  - 步骤：
+    - 前端在学生页面点击删除。
+    - 或通过接口：DELETE /students/{studentId}
+  - 期望：
+    - Student 记录删除。
+    - 对应床位 isAssigned=false, studentId=null。
+
+- 床位状态切换
+  - 前置：任意床位存在。
+  - 步骤：
+    - 前端床位列表点击“设为空闲/设为占用”。
+    - 或通过接口：PUT /beds/{dormId}/{bedNumber}?isAssigned=true|false
+  - 期望：
+    - Bed.isAssigned 更新为指定状态。
+    - 当设为占用但未指定学生时，前端应仅用于演示标记；正式分配需通过学生保存流程完成。
+
+- 床位新增与删除
+  - 前置：目标宿舍存在。
+  - 步骤：
+    - 新增：POST /beds，包含 dormId 与 bedNumber。
+    - 删除：DELETE /beds/{dormId}/{bedNumber}
+  - 期望：
+    - 新增后床位可在列表中显示，默认 isAssigned=false。
+    - 删除后不可在列表中找到该床位；若床位被占用，删除需谨慎（建议后续增加校验）。
+
+- 费用录入与查询
+  - 前置：学生存在。
+  - 步骤：
+    - 新增：POST /fees（feeType、amount、payDate、studentId）。
+    - 查询：GET /fees 与 GET /fees/{feeId}
+  - 期望：
+    - 新增后可按学生查询到对应费用记录。
+
+### 8.4 接口测试样例（可使用 curl）
+```bash
+# 新增学生并分配床位
+curl -X POST http://localhost:8080/students -H "Content-Type: application/json" -d '{
+  "studentId":"S9990001",
+  "name":"测试生",
+  "gender":"M",
+  "birthDate":"2005-01-01",
+  "grade":"2023级",
+  "dormId":"D101",
+  "bedNumber":3,
+  "phone":"13800000000"
+}'
+
+# 更换床位
+curl -X PUT http://localhost:8080/students -H "Content-Type: application/json" -d '{
+  "studentId":"S9990001",
+  "dormId":"D102",
+  "bedNumber":2
+}'
+
+# 删除学生并释放床位
+curl -X DELETE http://localhost:8080/students/S9990001
+
+# 切换床位状态
+curl -X PUT "http://localhost:8080/beds/D101/4?isAssigned=true"
+curl -X PUT "http://localhost:8080/beds/D101/4?isAssigned=false"
+```
+
+### 8.5 数据准备与重置
+- 清空数据：执行 [reset_data.sql](file:///e:/Java/Dorm-Management-System/reset_data.sql)。
+- 初始化表结构与数据：依次执行 [db.sql](file:///e:/Java/Dorm-Management-System/db.sql) 与 [mock_data.sql](file:///e:/Java/Dorm-Management-System/mock_data.sql)。
+
+### 8.6 通过准则
+- 数据一致性：学生与床位状态联动正确；删除学生后床位释放。
+- 接口正确性：返回 HTTP 状态码与响应数据符合预期。
+- 界面一致性：前端列表与详情显示与后端数据一致。
+- 异常处理：非法输入或占用冲突得到明确反馈（当前版本建议在服务层增加冲突校验以提升鲁棒性）。
+
+---
+
+## 9. 项目结论
+
+- 目标达成：系统实现了宿舍资源管理的核心需求，包括学生信息维护、宿舍与床位的管理、费用记录，以及学生与床位的一对一入住关系，前后端联动稳定可用。
+- 设计完整：报告涵盖概念结构（E-R）、数据字典五部分、逻辑设计与关系模式、物理设计（存储与索引），符合课程检查与教材要求，设计过程与实现一致。
+- 一致性保障：关键流程（分配/释放床位）在服务层以事务保证原子性与一致性；床位状态与学生信息联动更新，避免“脏数据”。参考：[StudentServiceImpl.java](file:///e:/Java/Dorm-Management-System/src/main/java/com/dorm/management/service/impl/StudentServiceImpl.java)、[BedServiceImpl.java](file:///e:/Java/Dorm-Management-System/src/main/java/com/dorm/management/service/impl/BedServiceImpl.java)。
+- 可运行性与可维护性：项目依赖开源技术栈（Spring Boot 3、Vue 3、MySQL），提供初始化与重置脚本（[db.sql](file:///e:/Java/Dorm-Management-System/db.sql)、[mock_data.sql](file:///e:/Java/Dorm-Management-System/mock_data.sql)、[reset_data.sql](file:///e:/Java/Dorm-Management-System/reset_data.sql)），结构清晰、模块边界明确，后续迭代容易。
+- 测试保障：报告内含测试计划与接口样例，覆盖学生新增/编辑/删除与床位联动、床位状态切换、费用录入/查询等主要场景，给出通过准则，便于教学验收与答辩演示。
+- 可行性良好：技术与运行环境成熟可靠，成本低、部署简单；文档与代码对应一致，避免“仅能运行但设计错误”的情况，更符合课程教学的严谨性要求。
+- 局限与展望：
+  - 建议补充床位占用冲突校验与并发控制（如加悲观/乐观锁）；
+  - 完善角色权限与审计日志；统一异常与错误码规范；
+  - 增加端到端测试、CI 流水线与容器化部署，以提升工程化水平。
+- 总结：系统不只是“能跑”，更注重“设计正确、过程完整、文档齐全”。当前版本已满足课程设计的核心要求，并为后续深入优化预留了明确方向。
